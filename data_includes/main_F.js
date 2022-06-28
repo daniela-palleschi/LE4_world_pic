@@ -1,28 +1,30 @@
 PennController.ResetPrefix(null);
-PennController.AddHost("https://amor.cms.hu-berlin.de/~petrenca/Hist_LE_stimuliV/"); // loads pictures from external server
-//PennController.DebugOff() // use for the final version
+PennController.AddHost("https://amor.cms.hu-berlin.de/~pallesid/LE_Exp4_world/"); // loads pictures from external server (see https://www.cms.hu-berlin.de/de/dl/beratung/pwww/einrichten)
+// if using pictures, remember to Preload, and to have files smaller than roughly 400KB to avoid preloading interruptions
+PennController.DebugOff() // use for the final version
 
 // --------------------------------------------------------------------------------------------------------------
 // Preamble
 
 // FOR REAL PARTICIPANTS; check: # of trials, DebugOff, DELETE results file
 PennController.Sequence("demographics", "instructions1", 
-"familiarity-practice", "familiarity-start", randomize("familiarity"), 
-"experiment_instructions", "practicetrials", "instructions2", 
+"preloadPrePractice",  
+"familiarity-practice", "familiarity-start", "preloadPreCritical", "preloadPreFiller",randomize("familiarity"), 
+"experiment_instructions", "preloadPractice", "preloadCritical", "preloadFiller", "practicetrials", "instructions2", 
 subsequence(repeat(shuffle(randomize("critical"), randomize("filler")), 25) , "break"),
-"post-instructions", "post-ques", "post-task-intro", "post-practice", "post-task-start", "post-task",  "send", "final");
+"post-instructions", "post-ques", "post-task-intro", "preloadPostPractice", "post-practice", "post-task-start", "preloadPostCritical", "post-task",  "send", "final");
 
-//PennController.Sequence("practicetrials")
-    
-    // --------------------------------------------------------------------------------------------------------------
-    // Create functions
-    
-    // create dashed function
-    dashed = (sentence, remove) => {
+//PennController.Sequence("preloadFiller", "filler");
+
+// --------------------------------------------------------------------------------------------------------------
+// Create functions
+
+// create dashed function
+dashed = (sentence, remove) => {
     let words = sentence.split('*'),  blanks = words.map(w=>w.split('').map(c=>'_').join('') ); // 'sentence.spilot('*')' = '*' defines the chunk boundaries (in the .csv)
-let textName = 'dashed'+words.join('');
-// We'll return cmds: the first command consists in creating (and printing) a Text element with dashes
-let cmds = [ newText(textName, blanks.join(' ')).print()
+    let textName = 'dashed'+words.join('');
+    // We'll return cmds: the first command consists in creating (and printing) a Text element with dashes
+    let cmds = [ newText(textName, blanks.join(' ')).print()
     .settings.css("font-family","courier")
     .settings.css("font-size", "20px")
     //.settings.css("font-size", "2em")  
@@ -91,6 +93,52 @@ cumulative_crit = (sentence, remove) => {
     cmds.push(getText(textName).remove());
     return cmds;
 };
+
+// --------------------------------------------------------------------------------------------------------------
+// 0. Preloading
+
+// Pretask
+CheckPreloaded( "familiarity-practice",5000)
+    .label( "preloadPrePractice" )
+    .setOption("countsForProgressBar", false)   //overrides some default settings, such as countsForProgressBar
+    .setOption("hideProgressBar", true);
+
+
+CheckPreloaded( "familiarity", 15000)
+    .label( "preloadPreCritical" )
+    .setOption("countsForProgressBar", false)   //overrides some default settings, such as countsForProgressBar
+    .setOption("hideProgressBar", true);
+
+// Experiment
+CheckPreloaded( "practicetrials",5000)
+    .label( "preloadPractice" )
+    .setOption("countsForProgressBar", false)   //overrides some default settings, such as countsForProgressBar
+    .setOption("hideProgressBar", true);
+
+
+CheckPreloaded( "critical", 15000)
+    .label( "preloadCritical" )
+    .setOption("countsForProgressBar", false)   //overrides some default settings, such as countsForProgressBar
+    .setOption("hideProgressBar", true);
+
+
+CheckPreloaded( "filler", 15000)
+    .label( "preloadFiller" )
+    .setOption("countsForProgressBar", false)   //overrides some default settings, such as countsForProgressBar
+    .setOption("hideProgressBar", true);
+
+// Posttask
+CheckPreloaded( "post-practice",5000)
+    .label( "preloadPostPractice" )
+    .setOption("countsForProgressBar", false)   //overrides some default settings, such as countsForProgressBar
+    .setOption("hideProgressBar", true);
+
+
+CheckPreloaded( "post-task", 15000)
+    .label( "preloadPostCritical" )
+    .setOption("countsForProgressBar", false)   //overrides some default settings, such as countsForProgressBar
+    .setOption("hideProgressBar", true);
+
 
 //====================================================================================================================================================================================================================
 // 1. Welcome page/demographics
@@ -431,10 +479,11 @@ PennController( "instructions1",
                 .settings.css("font-size", "20px")
                 ,        
                 newText("comp1_2", "You will be presented with names of cultural figures, with the prompt <b><i>'familiar?'</i></b>. "
-                        + "Please indicate whether you were <b>familiar with the cultural figure <i>before this experiment</i></b>, by pressing the 'F' or 'J' key. "
+                        + "Please indicate whether you are <b>familiar with the cultural figure</b>, by pressing the 'F' (yes) or 'J' (no) key. " // F-version
+                        // + "Please indicate whether you were <b>familiar with the cultural figure <i>before this experiment</i></b>, by pressing the 'F' (no) or 'J' (yes) key. " // J-version
+                        + "<br>Press 'yes' even if you feel you know a bit about them, e.g., their occupation (politician? actor?) or what they're generally known for. This can be based on their name, picture, or both."
                         + "<p> Each prompt will time out after a few seconds, so please answer quickly!"
                         + "<p>Then, a new cultural figure will be presented with the same prompt. "
-                        + "<p><p>After you have responded to all the prompts."
                         + "<p><p><b><i> Press the 'Continue' button to see some examples.")
                 .settings.css("font-size", "20px")
                 ,
@@ -471,6 +520,22 @@ PennController.Template( PennController.GetTable( "master_spr_subset20_world.csv
                                           newImage("crossmark", "https://amor.cms.hu-berlin.de/~pallesid/dfg_pretests/pictures/crossmark.png")
                                           .size(30,30)
                                           ,
+                                          // add text
+                                          newText("name", variable.name)
+                                          //.print()
+                                          .settings.css("font-size", "30px")
+                                          .settings.css("font-family","courier")
+                                          ,
+                                          newText("familiar", "familiar?")
+                                          .settings.css("font-size", "20px")
+                                          .settings.css("font-family","courier")
+                                          ,
+                                          newText("familiar-instru", "Are you familiar with this person/name?")
+                                          .settings.css("font-size", "15px")
+                                          .settings.css("font-family","times new roman")
+                                          .settings.center()
+                                          .settings.color("red")
+                                          ,
                                           // add photo
                                           newImage("photo", variable.file_name)
                                           .size (390)
@@ -487,28 +552,14 @@ PennController.Template( PennController.GetTable( "master_spr_subset20_world.csv
                                           .remove()
                                           ,
                                           // picture + name
-                                          newCanvas("photo", 900, 400)
-                                          .add("center at 50%", "center at 45%", getImage("photo"))
-                                          .print()
+                                          newCanvas("photo", 900, 500)
+                                          .add("center at 50%", "0", getImage("photo"))
+                                          .add("center at 50%", "400", getText("name"))
+                                          .add("center at 50%", "450", getText("familiar"))
+                                          .add("center at 50%", "500", getText("familiar-instru"))
+                                          .print("center at 50%", "center at 45%")
                                           ,
-                                          newText("name", variable.name)
-                                          //.print()
-                                          .settings.css("font-size", "30px")
-                                          .settings.css("font-family","courier")
-                                          .print("center at 50%","middle at 70%")
-                                          ,
-                                          newText("familiar", "familiar?")
-                                          .settings.css("font-size", "20px")
-                                          .settings.css("font-family","courier")
-                                          .print("center at 50%","middle at 80%")
-                                          ,
-                                          newText("familiar-instru", "Are you familiar with this person/name?")
-                                          .settings.css("font-size", "15px")
-                                          .settings.css("font-family","times new roman")
-                                          .settings.center()
-                                          .settings.color("red")
-                                          .print("center at 50%","middle at 85%")
-                                          ,
+                                          
                                           // print check and cross
                                           getImage("checkmark") // F-version
                                           //getImage("crossmark") // J-version
@@ -543,14 +594,16 @@ PennController.Template( PennController.GetTable( "master_spr_subset20_world.csv
                                           getKey("fam_resp")
                                           .test.pressed()
                                           .success( )
-                                          .failure( newText("failure", "Try to be faster!")
-                                                    .settings.css("font-size", "15px")
-                                                    .settings.italic()
-                                                    .settings.bold()
-                                                    .settings.css("font-family","times new roman")
-                                                    .settings.center()
-                                                    .settings.color("red")
-                                                    .print("center at 50%","middle at 85%")
+                                          .failure( getCanvas("photo")
+                                                    .add("center at 50%","500", newText("failure", "Try to be faster!")
+                                                         .settings.css("font-size", "15px")
+                                                         .settings.italic()
+                                                         .settings.bold()
+                                                         .settings.css("font-family","times new roman")
+                                                         .settings.center()
+                                                         .settings.color("red")
+                                                         //.print("center at 50%","500")
+                                                        )
                                                     ,
                                                     newTimer("faster", 2000) .start()
                                                     .log()
@@ -600,7 +653,7 @@ PennController.Template( PennController.GetTable( "master_spr_subset20_world.csv
 // 7. Pre-task start screen //
 
 PennController( "familiarity-start",
-                newText("comp1_1", "That was the practice round! You will now be presented with some more names. "
+                newText("comp1_1", "That was the practice round! You will now be presented with some more cultural figures."
                         + "<p> Remember, use the 'F' and 'J' keys to answer the prompts. "
                         + "<p><p><b><i>Press the spacebar to continue.")
                 .settings.css("font-size", "20px")
@@ -649,23 +702,27 @@ PennController.Template( PennController.GetTable( "master_spr_subset20_world.csv
                                           getText("dots")
                                           .remove()
                                           ,
-                                          // picture + name
-                                          newCanvas("photo", 900, 400)
-                                          .add("center at 50%", "center at 45%", getImage("photo"))
-                                          .print()
-                                          ,
+                                          
+                                          // familiar text
                                           newText("name", variable.name)
                                           //.print()
                                           .settings.css("font-size", "30px")
                                           .settings.css("font-family","courier")
-                                          .print("center at 50%","middle at 70%")
+                                          //.print("center at 50%","middle at 70%")
                                           ,
                                           newText("familiar", "familiar?")
-                                          //.print()
                                           .settings.css("font-size", "20px")
                                           .settings.css("font-family","courier")
-                                          .print("center at 50%","middle at 80%")
+                                          //.print("center at 50%","middle at 80%")
                                           ,
+                                          // picture + name
+                                          newCanvas("photo", 900, 500)
+                                          .add("center at 50%", "0", getImage("photo"))
+                                          .add("center at 50%", "400", getText("name"))
+                                          .add("center at 50%", "450", getText("familiar"))
+                                          .print("center at 50%", "center at 45%")
+                                          ,
+                                          
                                           // print check and cross
                                           getImage("checkmark") // F-version
                                           //getImage("crossmark") // J-version
@@ -675,6 +732,7 @@ PennController.Template( PennController.GetTable( "master_spr_subset20_world.csv
                                           //getImage("checkmark") // J-version
                                           .print("70vw","45vh")
                                           ,
+                                          
                                           newKey("fam_resp", "FJ")
                                           .callback( getTimer("time_out1").stop() )
                                           .log("all")  
@@ -737,11 +795,11 @@ PennController.Template( PennController.GetTable( "master_spr_subset20_world.csv
 // Experiment instructions                
 
 PennController( "experiment_instructions",
-                newText("instructions_a", "<b>Description of the experiment</b><p>"
-                        + "In this experiment, you will be seeing pictures of cultural figures and reading sentences about them."
-                        + "<br>You may be very familiar with some cultural figures, and not very familiar with others."
+                newText("instructions_a", "<b>That was the first task. Now you're ready for the next part!</b><p>"
+                        + "In the next task, you will be seeing pictures of cultural figures and reading sentences about them."
+                        + "<br>Some of them you've already seen, some of them you have not. For each person:"
                         + "<p>(1) <b>A picture</b> of a cultural figure will appear, along their name and with a sentence about them. "
-                        + "<br>Once you have read this sentence, press the <b>spacebar</b> to read a new sentence describing an accomplishment of theirs. "
+                        + "<br>Once you have read this sentence, press the <b>spacebar</b> to read a new sentence describing an accomplishment of theirs."
                         + "<p>(2) You will then be presented with a <b>new sentence revealed chunk-by-chunk.</b> "
                         + "<br>Press the <b>spacebar</b> to reveal the next sentence chunk."
                         + "<br><i>Please avoid repeatedly hitting the spacebar in order to read the sentence as a whole."
@@ -836,18 +894,16 @@ PennController.Template( PennController.GetTable( "master_spr_subset20_world.csv
                                           .settings.center()
                                           .settings.css("font-family","times new roman")
                                           .settings.color("red")
-                                          .print("center at 50%","15vh")
+                                          //.print("center at 50%","15vh")
                                           ,
                                           getText("dots")
                                           .remove()
                                           ,
                                           // context sentence
-                                          newCanvas("photo", 900, 400)
-                                          .add("center at 50%", "center at 45%", getImage("photo"))
-                                          .print()
-                                          ,
-                                          getText("bio_look")
-                                          .center()
+                                          newCanvas("photo", 900, 500)
+                                          .add("center at 50%", 0, getImage("photo"))
+                                          .add("center at 50%", 400, getText("bio_look"))
+                                          .add("center at 50%", 450, getText("bio_instru"))
                                           .print()
                                           ,
                                           newKey("cont_to_crit", " ")                                          
@@ -1130,12 +1186,9 @@ PennController.Template( PennController.GetTable( "master_spr_subset20_world.csv
                                           ,
                                           // context sentence
                                           newCanvas("photo", 900, 400)
-                                          .add("center at 50%", "center at 45%", getImage("photo"))
-                                          .print()
-                                          ,
-                                          getText("bio_look")
-                                          .center()
-                                          .print()
+                                          .add("center at 50%", 0, getImage("photo"))
+                                          .add("center at 50%", 400, getText("bio_look"))
+                                          .print("center at 50%", "center at 45%")
                                           ,
                                           newKey("cont_to_crit", " ")                                          
                                           .wait()
@@ -1242,13 +1295,11 @@ PennController.Template( PennController.GetTable( "master_spr_subset20_world.csv
                                           .remove()
                                           ,
                                           // context sentence
+                                          // context sentence
                                           newCanvas("photo", 900, 400)
-                                          .add("center at 50%", "center at 45%", getImage("photo"))
-                                          .print()
-                                          ,
-                                          getText("bio_look")
-                                          .center()
-                                          .print()
+                                          .add("center at 50%", 0, getImage("photo"))
+                                          .add("center at 50%", 400, getText("bio_look"))
+                                          .print("center at 50%", "center at 45%")
                                           ,
                                           newKey("cont_to_crit", " ")                                          
                                           .wait()
@@ -1603,6 +1654,10 @@ PennController.Template( PennController.GetTable( "master_spr_subset20_world.csv
                                           newImage("crossmark", "https://amor.cms.hu-berlin.de/~pallesid/dfg_pretests/pictures/crossmark.png")
                                           .size(30,30)
                                           ,
+                                          // add photo
+                                          newImage("photo", variable.file_name)
+                                          .size (390)
+                                          ,
                                           // dots
                                           newText("dots", "...")
                                           .print("center at 100vw","40vh")
@@ -1614,24 +1669,34 @@ PennController.Template( PennController.GetTable( "master_spr_subset20_world.csv
                                           getText("dots")
                                           .remove()
                                           ,
+                                          // familiar text
                                           newText("name", variable.name)
                                           //.print()
                                           .settings.css("font-size", "30px")
                                           .settings.css("font-family","courier")
-                                          .print("center at 50%","middle at 40%")
+                                          //.print("center at 50%","middle at 70%")
                                           ,
                                           newText("familiar", "familiar?")
                                           .settings.css("font-size", "20px")
                                           .settings.css("font-family","courier")
-                                          .print("center at 50%","middle at 45%")
+                                          //.print("center at 50%","middle at 80%")
                                           ,
-                                          newText("familiar-instru", "Were you familiar with this person/name<br><i>before the experiment?")
+                                          newText("familiar-instru", "Are you familiar with this person/name?")
                                           .settings.css("font-size", "15px")
                                           .settings.css("font-family","times new roman")
                                           .settings.center()
                                           .settings.color("red")
-                                          .print("center at 50%","middle at 50%")
+                                          //.print("center at 50%","middle at 85%")
                                           ,
+                                          // picture + name
+                                          newCanvas("photo", 900, 500)
+                                          .add("center at 50%", "0", getImage("photo"))
+                                          .add("center at 50%", "400", getText("name"))
+                                          .add("center at 50%", "450", getText("familiar"))
+                                          .add("center at 50%", "500", getText("familiar-instru"))
+                                          .print("center at 50%", "center at 45%")
+                                          ,
+                                          
                                           // print check and cross
                                           getImage("checkmark") // F-version
                                           //getImage("crossmark") // J-version
@@ -1666,14 +1731,16 @@ PennController.Template( PennController.GetTable( "master_spr_subset20_world.csv
                                           getKey("fam_resp")
                                           .test.pressed()
                                           .success( )
-                                          .failure( newText("failure", "Try to be faster!")
-                                                    .settings.css("font-size", "15px")
-                                                    .settings.italic()
-                                                    .settings.bold()
-                                                    .settings.css("font-family","times new roman")
-                                                    .settings.center()
-                                                    .settings.color("red")
-                                                    .print("center at 50%","middle at 50%")
+                                          .failure( getCanvas("photo")
+                                                    .add("center at 50%","500", newText("failure", "Try to be faster!")
+                                                         .settings.css("font-size", "15px")
+                                                         .settings.italic()
+                                                         .settings.bold()
+                                                         .settings.css("font-family","times new roman")
+                                                         .settings.center()
+                                                         .settings.color("red")
+                                                         //.print("center at 50%","500")
+                                                        )
                                                     ,
                                                     newTimer("faster", 2000) .start()
                                                     .log()
@@ -1683,18 +1750,23 @@ PennController.Template( PennController.GetTable( "master_spr_subset20_world.csv
                                                     .remove()
                                                    )
                                           ,
-                                          // ALIVE?
+                                          // alive text
                                           newText("alive", "alive today?")
                                           .settings.css("font-size", "20px")
                                           .settings.css("font-family","courier")
-                                          .print("center at 50%","middle at 45%")
+                                          //.print("center at 50%","middle at 80%")
                                           ,
                                           newText("alive-instru", "Do you believe they are alive today?")
                                           .settings.css("font-size", "15px")
                                           .settings.css("font-family","times new roman")
                                           .settings.center()
                                           .settings.color("red")
-                                          .print("center at 50%","middle at 50%")
+                                          //.print("center at 50%","middle at 85%")
+                                          ,
+                                          // ALIVE?
+                                          getCanvas("photo")
+                                          .add("center at 50%", "450", getText("alive"))
+                                          .add("center at 50%", "500", getText("alive-instru"))
                                           ,
                                           newKey("life_resp", "FJ")
                                           .callback( getTimer("time_out2").stop() )
@@ -1717,14 +1789,16 @@ PennController.Template( PennController.GetTable( "master_spr_subset20_world.csv
                                           getKey("life_resp")
                                           .test.pressed()
                                           .success( )
-                                          .failure( newText("alive_failure", "Okay, you weren't sure. No problem.")
+                                          .failure( getCanvas("photo")
+                                                    .add("center at 50%","500",newText("alive_failure", "Okay, you weren't sure. No problem.")
                                                     .settings.css("font-size", "15px")
                                                     .settings.italic()
                                                     .settings.bold()
                                                     .settings.css("font-family","times new roman")
                                                     .settings.center()
                                                     .settings.color("red")
-                                                    .print("center at 50%","middle at 50%")
+                                                    //.print("center at 50%","middle at 80%")
+                                                    )
                                                     ,
                                                     newTimer("faster", 2000) .start()
                                                     .log()
@@ -1733,6 +1807,9 @@ PennController.Template( PennController.GetTable( "master_spr_subset20_world.csv
                                                     getText("alive_failure")
                                                     .remove()
                                                    )
+                                          
+                                          
+                                          
                                           ,
                                           getImage("checkmark")
                                           .remove()
@@ -1741,6 +1818,9 @@ PennController.Template( PennController.GetTable( "master_spr_subset20_world.csv
                                           .remove()
                                           ,
                                           getText("name")
+                                          .remove()
+                                          ,
+                                          getCanvas("photo")
                                           .remove()
                                           ,
                                           newVar("life_resp") // this will create a new variable "rating"
@@ -1811,8 +1891,10 @@ PennController.Template( PennController.GetTable( "master_spr_subset20_world.csv
                                           newImage("crossmark", "https://amor.cms.hu-berlin.de/~pallesid/dfg_pretests/pictures/crossmark.png")
                                           .size(30,30)
                                           ,
+                                          // add photo
                                           newImage("photo", variable.file_name)
-                                          .size (390),
+                                          .size (390)
+                                          ,
                                           // dots
                                           newText("dots", "...")
                                           .print("center at 100vw","40vh")
@@ -1824,23 +1906,26 @@ PennController.Template( PennController.GetTable( "master_spr_subset20_world.csv
                                           getText("dots")
                                           .remove()
                                           ,
-                                          // picture + name
-                                          newCanvas("photo", 900, 400)
-                                          .add("center at 50%", "center at 45%", getImage("photo"))
-                                          .print()
-                                          ,
+                                          // familiar text
                                           newText("name", variable.name)
                                           //.print()
                                           .settings.css("font-size", "30px")
                                           .settings.css("font-family","courier")
-                                          .print("center at 50%","middle at 70%")
+                                          //.print("center at 50%","middle at 70%")
                                           ,
                                           newText("familiar", "familiar?")
-                                          //.print()
                                           .settings.css("font-size", "20px")
                                           .settings.css("font-family","courier")
-                                          .print("center at 50%","middle at 80%")
+                                          //.print("center at 50%","middle at 80%")
                                           ,
+                                          // picture + name
+                                          newCanvas("photo", 900, 500)
+                                          .add("center at 50%", "0", getImage("photo"))
+                                          .add("center at 50%", "400", getText("name"))
+                                          .add("center at 50%", "450", getText("familiar"))
+                                          .print("center at 50%", "center at 45%")
+                                          ,
+                                          
                                           // print check and cross
                                           getImage("checkmark") // F-version
                                           //getImage("crossmark") // J-version
@@ -1869,12 +1954,16 @@ PennController.Template( PennController.GetTable( "master_spr_subset20_world.csv
                                           getText("familiar")
                                           .remove()
                                           ,
-                                          // ALIVE?
+                                          // alive text
                                           newText("alive", "alive today?")
                                           .settings.css("font-size", "20px")
                                           .settings.css("font-family","courier")
-                                          .print("center at 50%","middle at 80%")
-                                          ,       
+                                          //.print("center at 50%","middle at 80%")
+                                          ,
+                                          // ALIVE?
+                                          getCanvas("photo")
+                                          .add("center at 50%", "450", getText("alive"))
+                                          ,
                                           newKey("life_resp", "FJ")
                                           .callback( getTimer("time_out2").stop() )
                                           .log("all")  
@@ -1889,6 +1978,31 @@ PennController.Template( PennController.GetTable( "master_spr_subset20_world.csv
                                           ,
                                           getText("alive")
                                           .remove()
+                                          ,
+                                          getKey("life_resp")
+                                          .test.pressed()
+                                          .success( )
+                                          .failure( getCanvas("photo")
+                                                    .add("center at 50%","500",newText("alive_failure", "Okay, you weren't sure. No problem.")
+                                                    .settings.css("font-size", "15px")
+                                                    .settings.italic()
+                                                    .settings.bold()
+                                                    .settings.css("font-family","times new roman")
+                                                    .settings.center()
+                                                    .settings.color("red")
+                                                    //.print("center at 50%","middle at 80%")
+                                                    )
+                                                    ,
+                                                    newTimer("faster", 2000) .start()
+                                                    .log()
+                                                    .wait()
+                                                    ,
+                                                    getText("alive_failure")
+                                                    .remove()
+                                                   )
+                                          
+                                          
+                                          
                                           ,
                                           getImage("checkmark")
                                           .remove()
